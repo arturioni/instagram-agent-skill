@@ -1,6 +1,6 @@
 # What we changed in instagram-agent-skill
 
-This fork, by Artur Rioni, starts from [Jakeschincariol/instagram-agent-skill](https://github.com/Jakeschincariol/instagram-agent-skill) at commit `d03c56b` (13 Sep 2026, that repo's last commit), MIT. Every line we changed is in the one commit on top of his (`git diff d03c56b`): 22 files changed, plus one new test and this file.
+This fork, by Artur Rioni, starts from [Jakeschincariol/instagram-agent-skill](https://github.com/Jakeschincariol/instagram-agent-skill) at commit `d03c56b` (13 Sep 2026, that repo's last commit), MIT. The first round of changes is the one commit on top of his (`git diff d03c56b d902f52`): 22 files changed, plus one new test and this file. Fixes made after that are under "Later fixes" at the end.
 
 Before anything ran, all six Python scripts were read in full: standard library only, no network, no shell calls, they only read the files you hand them and write where you tell them. They were run with `python3 -I` from outside the folder.
 
@@ -64,5 +64,15 @@ Sources: the Instagram Help Center pages and Meta docs cited in issue #29 (check
 ## Left as Jake had it, worth knowing
 
 - `/ig-viral`'s optional YouTube Shorts step uses `yt-dlp`, which needs installing and is also against YouTube's terms if you read them strictly. It's optional and we didn't change it.
-- `plugin.json` keeps Jake as the plugin's author. Its homepage and repository, the marketplace owner and the README's install commands point to this fork, and the version is 1.1.0 (his was 1.0.0).
+- `plugin.json` keeps Jake as the plugin's author. Its homepage and repository, the marketplace owner and the README's install commands point to this fork, and the version is 1.1.1 (his was 1.0.0).
 - Not touched: the Spanish, Korean and Turkish translation PRs, the new hook formula PR (#65), the ChatPlace-style keyword PR (#35), and the carousel renderer and research scripts in #67.
+
+## Later fixes
+
+### 17 Nov 2026: numbers said as words count in `/ig-human` too
+
+- `detect.py`'s SPECIFICITY check counted only digits and names. A script written the way it's said ("five hours", "twenty minutes", "four things") had nothing concrete in it, and since `/ig-reel` sends every script through `/ig-human`, every spoken script lost points for it. `hookscore.py` has counted number words since Jake's first version and `beats.py` since #5; `detect.py` never did. Found by installing the skills from the README and running `/ig-reel` end to end.
+- It now counts the same number words and money words as those two. A number said in several words ("twenty-five thousand") counts once, the way "25,000" matches once, so a spelled-out script doesn't score higher than the same script in digits.
+- Checked on a seven-line test script: written with number words it went from SPECIFICITY 0 to 100 and from a human score of 40.6 (FLAGGED) to 68.1. The same script in digits stays at 65.3.
+- The word lists are copied into `detect.py`, not imported from `ig-reel`, because each skill folder has to work when it's installed on its own. The new test, `tests/test_spoken_numbers.py`, fails if the three copies drift apart, and checks that the spelled-out and digit versions of a script score the same.
+- Version 1.1.1.

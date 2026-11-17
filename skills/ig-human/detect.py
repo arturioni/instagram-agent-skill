@@ -55,6 +55,27 @@ PRONOUNS = re.compile(r"\b(i|me|my|mine|we|us|our|you|your)\b", re.IGNORECASE)
 NUMBERS = re.compile(r"\b\d[\d,.]*%?\b|\$\d")
 PROPER = re.compile(r"(?<![.!?]\s)(?<!^)\b[A-Z][a-z]{2,}\b", re.MULTILINE)
 
+# Scripts say their numbers out loud: "five hours" is as concrete as "5 hours".
+# Same lists as ig-reel/hookscore.py and beats.py, copied so this folder still
+# works on its own; tests/test_spoken_numbers.py fails if the copies drift.
+# "one" and "first" are left out there on purpose: usually filler, not a count.
+SPOKEN_NUMBERS = {
+    "zero", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+    "ten", "eleven", "twelve", "fifteen", "twenty", "thirty", "forty", "fifty",
+    "sixty", "seventy", "eighty", "ninety", "hundred", "thousand", "million",
+    "billion", "dozen", "half", "twice", "triple",
+}
+MONEY_WORDS = {
+    "dollars", "dollar", "bucks", "grand", "percent", "cents",
+    "millionaire", "billionaire", "revenue", "profit", "salary", "rent",
+}
+# "twenty-five thousand" is one number, the way "25,000" is one NUMBERS match,
+# so a run of number words on one line counts once.
+_NUM = "|".join(sorted(SPOKEN_NUMBERS, key=len, reverse=True))
+SPOKEN = re.compile(r"\b(?:%s)(?:[ \t-]+(?:and[ \t-]+)?(?:%s))*\b" % (_NUM, _NUM), re.IGNORECASE)
+MONEY = re.compile(r"\b(?:%s)\b" % "|".join(sorted(MONEY_WORDS, key=len, reverse=True)),
+                   re.IGNORECASE)
+
 
 def clamp(n):
     return max(0.0, min(100.0, n))
@@ -87,12 +108,13 @@ def check_burstiness(text):
 
 
 def check_specificity(text):
-    """Numbers, names and concrete nouns. Slop is abstract."""
+    """Numbers (digits or said as words), names and money. Slop is abstract."""
     w = words(text)
     if len(w) < 25:
         return 50.0, "too short to judge"
     per100 = 100 / len(w)
-    hits = len(NUMBERS.findall(text)) + len(set(PROPER.findall(text)))
+    hits = (len(NUMBERS.findall(text)) + len(SPOKEN.findall(text))
+            + len(MONEY.findall(text)) + len(set(PROPER.findall(text))))
     density = hits * per100
     score = scale(density, human=6.0, machine=0.5)
     return score, f"{hits} concrete markers, {density:.1f} per 100 words (want 4+)"
