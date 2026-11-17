@@ -60,10 +60,19 @@ def words(text):
     return WORD_RE.findall(re.sub(r"(?<=\d),(?=\d)", "", text))
 
 
+def spoken_number(word):
+    """A number or money word, on its own or as part of a hyphenated word.
+
+    words() keeps hyphens, so "twenty-five" and "five-dollar" stay one word
+    and count as one number, the way "25" does. Same as hookscore.py.
+    """
+    return any(part in SPOKEN_NUMBERS or part in MONEY_WORDS for part in word.split("-"))
+
+
 def concrete(text):
     """Digits, prices, names, and numbers said as words."""
     spoken = [w for w in (t.lower().strip("'’") for t in words(text))
-              if w in SPOKEN_NUMBERS or w in MONEY_WORDS]
+              if spoken_number(w)]
     return len(CONCRETE_RE.findall(text)) + len(spoken)
 
 

@@ -64,7 +64,7 @@ Sources: the Instagram Help Center pages and Meta docs cited in issue #29 (check
 ## Left as Jake had it, worth knowing
 
 - `/ig-viral`'s optional YouTube Shorts step uses `yt-dlp`, which needs installing and is also against YouTube's terms if you read them strictly. It's optional and we didn't change it.
-- `plugin.json` keeps Jake as the plugin's author. Its homepage and repository, the marketplace owner and the README's install commands point to this fork, and the version is 1.1.1 (his was 1.0.0).
+- `plugin.json` keeps Jake as the plugin's author. Its homepage and repository, the marketplace owner and the README's install commands point to this fork, and the version is 1.1.2 (his was 1.0.0).
 - Not touched: the Spanish, Korean and Turkish translation PRs, the new hook formula PR (#65), the ChatPlace-style keyword PR (#35), and the carousel renderer and research scripts in #67.
 
 ## Later fixes
@@ -76,3 +76,8 @@ Sources: the Instagram Help Center pages and Meta docs cited in issue #29 (check
 - Checked on a seven-line test script: written with number words it went from SPECIFICITY 0 to 100 and from a human score of 40.6 (FLAGGED) to 68.1. The same script in digits stays at 65.3.
 - The word lists are copied into `detect.py`, not imported from `ig-reel`, because each skill folder has to work when it's installed on its own. The new test, `tests/test_spoken_numbers.py`, fails if the three copies drift apart, and checks that the spelled-out and digit versions of a script score the same.
 - Version 1.1.1.
+
+### 17 Nov 2026: hyphenated numbers count in `/ig-reel`'s scorers
+
+- `hookscore.py` and `beats.py` keep hyphens inside a word, so "twenty-five" was one word that wasn't on the number list, and it counted as nothing. "Twenty-five things I wish I knew" scored SPECIFICITY 15 and 48.6 overall (WEAK), while "25 things I wish I knew" scored 75 and 77.8 (STRONG). Both scripts now look at each part of a hyphenated word, so the spelled-out hook scores exactly what the digit one does. "twenty-five" counts once, not twice, and is still one word for LENGTH. Found while checking the `/ig-human` fix above; `tests/test_spoken_numbers.py` now checks this too.
+- Version 1.1.2.
