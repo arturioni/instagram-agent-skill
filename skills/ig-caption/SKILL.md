@@ -2,7 +2,7 @@
 name: ig-caption
 description: >-
   Write the Instagram caption - the line that survives the "... more" cut, the
-  body, the single ask, the search terms and the three hashtags - and lint it
+  body, the single ask, the search terms and up to five hashtags - and lint it
   before it goes out. Use when the user says "write the caption", "caption this",
   "what do I put in the description", has a reel or a carousel ready and needs
   the text, or asks about hashtags.
@@ -13,12 +13,19 @@ description: >-
 One tool lives in this folder and it runs:
 
 ```bash
-python3 caption.py caption.txt
-python3 caption.py caption.txt --keywords "client proposals,agency pricing"
+python3 "<skill dir>/caption.py" caption.txt
+python3 "<skill dir>/caption.py" caption.txt --keywords "client proposals,agency pricing"
 ```
 
+`<skill dir>` is this skill's own folder. Claude is shown its path when the skill
+loads ("Base directory for this skill"); in the plugin it is
+`${CLAUDE_PLUGIN_ROOT}/skills/ig-caption`. Use the full path: the shell starts in the
+user's project, not here.
+
 It prints the caption the way the feed prints it: the first 125 characters in a
-box, everything else behind the tap. Read that box before you read anything
+box, everything else behind the tap. The feed really shows about two lines;
+125 characters is Meta's recommended length for feed ad text and a fair
+stand-in for two lines, not an exact organic number. Read that box before you read anything
 else you wrote.
 
 ## First, decide which job this caption has
@@ -58,9 +65,10 @@ the tap and then delivers 600 characters beats one that delivers 1,800.
 Hashtags are not a reach lever any more, and the platform has now said so with
 a product change. **Instagram capped hashtags at five per post on 18 December
 2025**, down from thirty, telling creators that "using fewer (up to 5) more
-targeted hashtags, rather than many generic ones" performs better. Adam Mosseri
-had already said in February 2025 that hashtags do not work to increase reach
-and are a label, not a distribution lever.
+targeted hashtags, rather than many generic ones" performs better, and the
+Help Center now states the cap. Adam Mosseri has said since at least a March
+2022 Stories Q&A that hashtags do not increase reach and are a label, not a
+distribution lever.
 
 So: up to five, specific, as topic labels. If the user has a block of twenty
 saved in their notes app, that block is now dead weight and the linter will
@@ -78,7 +86,7 @@ that reads normally. "Client proposals" as words in line three, not
 Ask for two or three of those terms, then pass them to the linter:
 
 ```bash
-python3 caption.py draft.txt --keywords "client proposals,agency pricing"
+python3 "<skill dir>/caption.py" draft.txt --keywords "client proposals,agency pricing"
 ```
 
 ## Rules

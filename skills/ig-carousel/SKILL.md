@@ -28,7 +28,8 @@ If the idea is one claim, it is neither. Hand it to `/ig-reel` and say so.
 
 ## Structure
 
-6 to 10 slides. The cap is 20 and 20 is almost always a book nobody finishes.
+6 to 10 slides. The cap is 20 in the app (10 if it is posted through the API),
+and 20 is almost always a book nobody finishes.
 Under 5 and the swipe never starts.
 
 ```
@@ -52,9 +53,10 @@ LAST      CTA       one action. Save, comment a keyword, or follow. One.
   the outer 120 pixels on every side, and the crop stops mattering.
 - **Number the slides** (3/8). Completion goes up when people can see the end.
 - **No slide is a paragraph.** If it cannot be said in 25 words, split it.
-- **The recap slide is the one people screenshot and send.** Sends are the
-  strongest signal you can earn. Make it standalone and readable with no
-  context.
+- **The recap slide is the one people screenshot and send.** Adam Mosseri names watch time, likes and sends as the top three
+  signals, with sends counting a little more for reaching people who do not
+  follow you.
+  Make it standalone and readable with no context.
 - **The handle on every slide**, small, bottom corner. Screenshots travel
   without you.
 - **Alt text on the cover at minimum.** It is read by screen readers and by
@@ -62,13 +64,19 @@ LAST      CTA       one action. Save, comment a keyword, or follow. One.
 
 ## Building the files
 
-Instagram wants 1080x1350 (4:5), JPEG or PNG, up to 20 items. Build it as HTML
-and print each slide:
+Instagram wants one image per slide, JPEG or PNG: 1080x1350 (4:5), or
+1080x1440 (3:4), which Instagram now takes too and which matches the grid tile.
+Not a PDF. Build each slide as its own HTML page and screenshot it:
 
 ```bash
-# one <section> per slide, 1080x1350, page-break-after: always
-# then Chrome headless --print-to-pdf, or any HTML-to-image you already use
+# one HTML file per slide, width:1080px; height:1350px
+# then, for each slide, Chrome or Chromium in headless mode:
+#   chrome --headless --hide-scrollbars --window-size=1080,1350 --screenshot=slide-01.png slide-01.html
+# or any HTML-to-image tool the user already has
 ```
+
+If nothing on the machine can turn HTML into an image, hand over the slide copy
+and the layout notes and let the user build the slides in Canva or similar.
 
 Write the HTML with `width:1080px; height:1350px`, a single accent colour, and
 type no smaller than 32px, because this is read on a phone at a third of its
@@ -88,7 +96,7 @@ copy.
 ```
 CAROUSEL  ·  8 slides
 
-1  COVER   THE $18,000 CLAUSE
+1  COVER   THE 18K CLAUSE
            One line I now put in every contract.
 2  STAKE   I approved the work. They asked for the money back nine days later.
 3          WHAT IT SAYS

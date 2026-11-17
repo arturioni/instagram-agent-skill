@@ -39,7 +39,7 @@ and show the working:
 | **Non-follower reach** | % of reach from people who do not follow | whether it travelled at all |
 | **Hold at 3s** | viewers still there at 3s / viewers who started | whether the hook worked. This is the hook's grade. |
 | **Average watch time** | straight from insights | whether the middle worked |
-| **Sends per reach** | shares / reach | the strongest single signal you can earn. A send is a person putting their name on it. |
+| **Sends per reach** | shares / reach | one of the three signals Instagram names first (with watch time and likes), and the one that counts most for reaching people who do not follow you. A send is a person putting their name on it. |
 | **Follows per reach** | follows / reach | whether the profile converted the attention |
 
 Rank by outlier multiple and sends per reach, not views. A reel with 4,000

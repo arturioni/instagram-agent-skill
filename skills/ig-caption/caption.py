@@ -3,8 +3,9 @@
 caption.py - lint an Instagram caption and show exactly what the feed shows
 before the "... more".
 
-Instagram gives a caption about 125 characters in the feed and hides the rest
-behind a tap. Almost every caption that fails, fails there: the hook is in
+Instagram shows about two lines of a caption in the feed and hides the rest
+behind a tap. 125 characters is Meta's recommended length for the primary text
+of a feed ad, not an organic spec, but it is a fair stand-in for two lines. Almost every caption that fails, fails there: the hook is in
 sentence three, or the first line is a greeting, or the whole thing opens on a
 hashtag. This prints the visible window as a box so you can read it the way a
 scrolling stranger does, then checks the eight things that are worth checking.
@@ -43,7 +44,7 @@ EMOJI_RE = re.compile(r"[\U0001F300-\U0001FAFF☀-➿←-⇿️]")
 CONCRETE_RE = re.compile(r"\$\s?\d|\b\d[\d,.]*\b|(?<!^)\b[A-Z][a-z]{2,}\b", re.MULTILINE)
 
 ASKS = [
-    (re.compile(r"(?i)\bcomment (?:the word |\")?[A-Z0-9]{2,}\b"), "comment a keyword"),
+    (re.compile(r"\b(?i:comment)\s+(?i:the word\s+)?(?:\"[^\"]+\"|[A-Z0-9]{2,}\b)"), "comment a keyword"),
     (re.compile(r"(?i)\b(?:dm|message) me\b"), "DM me"),
     (re.compile(r"(?i)\bsave (?:this|it)\b"), "save this"),
     (re.compile(r"(?i)\bshare (?:this|it)\b"), "share this"),
@@ -200,6 +201,12 @@ def main():
     ap.add_argument("--keywords", default="", help="comma-separated terms you want to be found for")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
+
+    # Windows pipes default to the ANSI code page (cp1252), which cannot print
+    # an emoji and misreads UTF-8 input. Read and write UTF-8 everywhere.
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
 
     raw = sys.stdin.read() if args.input == "-" else open(args.input, encoding="utf-8").read()
     a = analyse(raw, cut=args.truncate, keywords=args.keywords.split(","))

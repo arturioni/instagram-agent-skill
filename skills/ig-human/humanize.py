@@ -34,10 +34,23 @@ import sys
 import unicodedata
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-LEX = os.path.join(HERE, "slop.json")
+# Your own edits to the lexicon go in ~/.claude/instagram/slop.json, which a plugin
+# update does not touch. If it exists it is used; otherwise the bundled file is.
+USER_LEX = os.path.expanduser("~/.claude/instagram/slop.json")
+LEX = USER_LEX if os.path.exists(USER_LEX) else os.path.join(HERE, "slop.json")
 
 URL_RE = re.compile(r"https?://\S+|www\.\S+|\S+@\S+\.\S+")
 SENT_RE = re.compile(r"[^.!?\n]+[.!?]*")
+
+
+def term_pattern(find):
+    """A lexicon term as a regex. Word boundaries only go on edges that are word
+    characters: after a "?" a \\b would need a letter to follow, so a term
+    ending in punctuation could never match."""
+    body = re.sub(r"(?:\\ | )+", lambda m: r"\s+", re.escape(find))   # any run of spaces, escaped or not
+    left = r"\b" if re.match(r"\w", find) else ""
+    right = r"\b" if re.search(r"\w$", find) else ""
+    return re.compile(left + body + right, re.IGNORECASE)
 
 
 def load_lexicon(path=LEX):
@@ -51,6 +64,48 @@ def _cp(spec):
         a, b = spec.split("-")
         return (int(a[2:], 16), int(b[2:], 16))
     return int(spec[2:], 16)
+
+
+# Joiners and marks that real text depends on. Stripping these does not remove a
+# machine tell, it breaks the text: an emoji ZWJ sequence falls apart into
+# separate emoji, a subdivision flag loses its region, and Persian, Arabic and
+# Indic words lose the joins their spelling needs.
+ZWNJ, ZWJ, VS16 = "\u200c", "\u200d", "\ufe0f"
+BLACK_FLAG, TAG_END = "\U0001f3f4", "\U000e007f"
+DIRECTION_MARKS = "\u200e\u200f\u061c"
+RTL_RE = re.compile("[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufeff]")
+
+
+def _is_emoji(c):
+    return unicodedata.category(c) in ("So", "Sk") or c == VS16
+
+
+def _joins_letters(c):
+    """A letter or mark outside Latin, i.e. a script that uses ZWJ/ZWNJ inside words."""
+    return unicodedata.category(c)[0] in "LM" and ord(c) > 0x2FF
+
+
+def legit_format_positions(text):
+    """Indexes of invisible characters that are doing real work and must stay."""
+    keep = set()
+    rtl = bool(RTL_RE.search(text))
+    for i, c in enumerate(text):
+        prev = text[i - 1] if i else ""
+        nxt = text[i + 1] if i + 1 < len(text) else ""
+        if c in (ZWJ, ZWNJ) and prev and nxt:
+            if _joins_letters(prev) and _joins_letters(nxt):
+                keep.add(i)              # Persian nim-fasele, Hindi conjuncts
+            elif c == ZWJ and _is_emoji(prev) and _is_emoji(nxt):
+                keep.add(i)              # family, rainbow flag, profession emoji
+        elif c in DIRECTION_MARKS and rtl:
+            keep.add(i)                  # direction marks in Arabic-script or Hebrew text
+        elif c == BLACK_FLAG:
+            j = i + 1                    # England, Scotland, Wales: flag + tags + cancel tag
+            while j < len(text) and 0xE0020 <= ord(text[j]) <= 0xE007E:
+                j += 1
+            if j > i + 1 and j < len(text) and text[j] == TAG_END:
+                keep.update(range(i + 1, j + 1))
+    return keep
 
 
 def protect_urls(text):
@@ -72,25 +127,33 @@ def restore_urls(text, found):
 
 def pass_invisible(text, lex):
     """Delete or space-normalise invisible characters. Returns (text, hits)."""
-    hits = []
+    keep = legit_format_positions(text)
+    rules = []
     for entry in lex["invisible"]:
         cp = _cp(entry["cp"])
-        if isinstance(cp, tuple):
-            pattern = "[" + re.escape(chr(cp[0])) + "-" + re.escape(chr(cp[1])) + "]"
+        rules.append((cp if isinstance(cp, tuple) else (cp, cp), entry))
+    counts = [0] * len(rules)
+    stray = 0
+    out = []
+    for i, c in enumerate(text):
+        if i in keep:
+            out.append(c)
+            continue
+        n = ord(c)
+        hit = next((k for k, ((lo, hi), _) in enumerate(rules) if lo <= n <= hi), None)
+        if hit is not None:
+            counts[hit] += 1
+            if rules[hit][1]["action"] != "delete":
+                out.append(" ")
+        elif unicodedata.category(c) == "Cf":
+            stray += 1                   # any remaining Cf (format) character is invisible by definition
         else:
-            pattern = re.escape(chr(cp))
-        n = len(re.findall(pattern, text))
-        if n:
-            hits.append({"name": entry["cp"] + " " + entry["name"], "count": n,
-                         "action": entry["action"]})
-            text = re.sub(pattern, "" if entry["action"] == "delete" else " ", text)
-    # Any remaining Cf (format) character is invisible by definition.
-    stray = [c for c in text if unicodedata.category(c) == "Cf"]
+            out.append(c)
+    hits = [{"name": entry["cp"] + " " + entry["name"], "count": counts[k], "action": entry["action"]}
+            for k, (_, entry) in enumerate(rules) if counts[k]]
     if stray:
-        hits.append({"name": "other invisible format chars", "count": len(stray),
-                     "action": "delete"})
-        text = "".join(c for c in text if unicodedata.category(c) != "Cf")
-    return text, hits
+        hits.append({"name": "other invisible format chars", "count": stray, "action": "delete"})
+    return "".join(out), hits
 
 
 def pass_typographic(text, lex):
@@ -133,8 +196,7 @@ def pass_lexical(text, lex):
                      key=lambda e: len(e["find"]), reverse=True)
     for entry in entries:
         find = entry["find"]
-        pattern = re.compile(r"\b" + re.escape(find).replace(r"\ ", r"\s+") + r"\b",
-                             re.IGNORECASE)
+        pattern = term_pattern(find)
         found = pattern.findall(text)
         if not found:
             continue
@@ -261,6 +323,12 @@ def main():
     ap.add_argument("--json", action="store_true", help="emit {text, report} as JSON")
     ap.add_argument("--lexicon", default=LEX, help="path to slop.json")
     args = ap.parse_args()
+
+    # Windows pipes default to the ANSI code page (cp1252), which cannot print
+    # an emoji and misreads UTF-8 input. Read and write UTF-8 everywhere.
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
 
     raw = sys.stdin.read() if args.input == "-" else open(args.input, encoding="utf-8").read()
     lex = load_lexicon(args.lexicon)

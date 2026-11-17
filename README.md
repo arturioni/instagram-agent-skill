@@ -1,5 +1,11 @@
 # The Instagram agent skill
 
+Based on [instagram-agent-skill](https://github.com/Jakeschincariol/instagram-agent-skill)
+by Jake Schincariol, MIT. This copy fixes the bugs reported on that repo, brings
+the platform facts up to date, keeps your logged-in browser out of it unless you
+ask, and adds an optional section for the ChatPlace connector. Every change is
+listed in `CHANGES.md`.
+
 Thirteen Claude skills that run an Instagram account. Free, MIT, no signup, no
 API key, nothing to connect.
 
@@ -22,7 +28,7 @@ see it.
 Paste this into Claude:
 
 ```
-https://github.com/Jakeschincariol/instagram-agent-skill
+https://github.com/arturioni/instagram-agent-skill
 
 Install this skill, then confirm /ig-reel works.
 ```
@@ -30,14 +36,21 @@ Install this skill, then confirm /ig-reel works.
 Or do it yourself, in Claude Code:
 
 ```bash
-git clone https://github.com/Jakeschincariol/instagram-agent-skill.git
+git clone https://github.com/arturioni/instagram-agent-skill.git
+mkdir -p ~/.claude/skills
 cp -r instagram-agent-skill/skills/ig-* ~/.claude/skills/
 ```
 
-Or as a plugin:
+Or as a plugin, in one line (Claude Code 2.1.275 or later):
 
 ```
-/plugin marketplace add Jakeschincariol/instagram-agent-skill
+/plugin install instagram-agent --marketplace arturioni/instagram-agent-skill
+```
+
+On an older Claude Code, add the marketplace first:
+
+```
+/plugin marketplace add arturioni/instagram-agent-skill
 /plugin install instagram-agent
 ```
 
@@ -78,8 +91,8 @@ your text.
 ### Hooks
 
 ```bash
-python3 hookscore.py hooks.txt              # rank your options
-python3 beats.py script.txt --target 30     # time it before you shoot it
+python3 skills/ig-reel/hookscore.py hooks.txt              # rank your options
+python3 skills/ig-reel/beats.py script.txt --target 30     # time it before you shoot it
 ```
 
 ```
@@ -93,6 +106,8 @@ HOOK RANKING
         weakest: STAKES (70)
         dealbreaker: Opens with "stop scrolling". Asking for attention proves
                      you have not earned it.
+        dealbreaker: Emoji in the hook. On-screen text at hook size has room
+                     for words or for an emoji, not both.
      9.6 WEAK    Hey guys, today I wanted to talk about content strategy
         weakest: FRONTLOAD (0)
         dealbreaker: Greeting. Nobody came to the feed to be greeted.
@@ -124,7 +139,7 @@ BEAT SHEET  ·  73 words  ·  ~26.6s at 165 wpm  ·  target 30.0s
 ### The caption
 
 ```bash
-python3 caption.py caption.txt --keywords "client contracts,freelance pricing"
+python3 skills/ig-caption/caption.py caption.txt --keywords "client contracts,freelance pricing"
 ```
 
 Instagram gives a caption about 125 characters in the feed and hides the rest
@@ -153,9 +168,9 @@ Instagram cut it on 18 December 2025.
 ### The humanizer
 
 ```bash
-python3 humanize.py draft.txt --report      # clean it, show every change
-python3 detect.py draft.txt                  # score it, five checks
-python3 detect.py before.txt after.txt       # prove the delta
+python3 skills/ig-human/humanize.py draft.txt --report      # clean it, show every change
+python3 skills/ig-human/detect.py draft.txt                  # score it, five checks
+python3 skills/ig-human/detect.py before.txt after.txt       # prove the delta
 ```
 
 **What comes out automatically:**
@@ -163,10 +178,13 @@ python3 detect.py before.txt after.txt       # prove the delta
 - **Invisible characters.** Zero-width spaces and joiners, word joiners, soft
   hyphens, byte-order marks, Unicode tag characters, invisible separators,
   non-breaking and narrow spaces. Your keyboard does not make these. They
-  survive copy-paste and they are invisible in every editor you own.
+  survive copy-paste and they are invisible in every editor you own. The ones
+  your text needs stay: emoji sequences like 👨‍👩‍👧 and 🏳️‍🌈, subdivision flags,
+  and the joiners and direction marks Persian, Arabic and Indic scripts spell
+  with.
 - **Typography.** Em dash to comma, en dash to hyphen, curly quotes to
   straight, ellipsis to three dots, and the orphaned punctuation that leaves.
-- **The lexicon.** 154 stock words and phrases with plain-English replacements.
+- **The lexicon.** 149 stock words and phrases with plain-English replacements.
   The last block of it is Instagram-specific: "stop scrolling", "in today's
   video", "follow for more", "tag someone who needs this", "the algorithm
   loves", "run don't walk". It lives in
@@ -199,7 +217,7 @@ After `humanize.py`, with the flagged structures still unrewritten:
 ### The swipe file
 
 ```bash
-python3 swipe.py captured.tsv --out ~/.claude/instagram/swipe.md
+python3 skills/ig-viral/swipe.py captured.tsv --out ~/.claude/instagram/swipe.md
 ```
 
 Raw views are not evidence. A 2,000,000-follower account doing 400,000 views
@@ -269,9 +287,10 @@ on `yt-dlp`, but the method is four lines and is written out in
 
 ## The fine print, which is the honest part
 
-**These skills do not post to Instagram.** There is a real Content Publishing
-API for Professional accounts, and it needs a Meta developer app, a linked
-Page, a long-lived token and app review, which is not a thing a skill can hand
+**These skills do not post to Instagram.** There is a real publishing API for
+Professional accounts. Since July 2024 it no longer needs a linked Facebook
+Page, and app review only applies to accounts you do not own, but it still
+needs a Meta developer app and a token, which is not a thing a skill can hand
 you. Everything else people use to automate posting, commenting, following or
 DMing is browser automation or a third-party tool, and both violate
 [Instagram's Terms of Use](https://help.instagram.com/581066165581870) and get
@@ -279,12 +298,31 @@ accounts action-blocked. So every skill here ends the same way: a copy-ready
 block, and you post it. That is not a limitation bolted on afterwards, it is
 the design, and it is why the approval gate is real rather than a setting.
 
-The one exception is keyword auto-replies in DMs, which Instagram supports
-through its own tools and approved partners, and which only fire after somebody
-comments first. `/ig-dm` says where that line is.
+The one exception is keyword auto-replies in DMs, which Instagram allows
+through its Private Replies API (one reply per comment, within 7 days) and
+which only fire after somebody comments first. `/ig-dm` says where that line
+is.
+
+## With ChatPlace (optional)
+
+If the ChatPlace connector is connected in Claude, two skills use it, and only
+then:
+
+- `/ig-viral` pulls the account numbers and Virale's breakdown of each reel
+  (transcript, hook, story, call to action) instead of you pasting them.
+- `/ig-dm` can build the keyword DM as a ChatPlace automation, once you have
+  read the flow and said yes.
+
+Without the connector nothing changes, and nothing here needs it.
+
+## Your browser stays yours
+
+`/ig-viral` asks you to paste the numbers by default. It only reads Instagram in
+your logged-in browser if you ask it to, and it tells you first that this is a
+grey area under Instagram's terms.
 
 **`/ig-viral` reads, it does not scrape.** Ten accounts, a dozen reels each, at
-human speed, with you driving your own browser. It never asks for your password
+human speed, pasted by you, or read in your own browser only if you opt in. It never asks for your password
 and never logs in as you. Automated collection at volume is the thing that gets
 accounts restricted, and a crawler is not what this is.
 
@@ -318,17 +356,24 @@ skills/ig-reel/hooks.json          26 hook formulas: template, example, on-scree
 skills/ig-reel/hookscore.py        the five-property hook panel
 skills/ig-reel/beats.py            script to timed beat sheet
 skills/ig-caption/caption.py       the truncation preview and the caption linter
-skills/ig-human/slop.json          the lexicon: 154 terms, 18 invisible classes, 16 tells
+skills/ig-human/slop.json          the lexicon: 149 terms, 18 invisible classes, 16 tells
+                                   (your own edited copy goes in ~/.claude/instagram/slop.json)
 skills/ig-human/humanize.py        the three cleaning passes
 skills/ig-human/detect.py          the five-check panel
 skills/ig-viral/swipe.py           outlier ranking and formula classification
 skills/ig-profile/rubric.json      the 100-point profile score
 templates/voice.md                 your voice profile. Fill this in first.
+tests/test_hook_formulas.py        checks every formula recognises its own example
 ```
 
 ## Credit
 
-Made by Jake Schincariol, [opusjake.ai](https://opusjake.ai).
+Made by Jake Schincariol, [opusjake.ai](https://opusjake.ai), MIT. This copy is
+based on his [instagram-agent-skill](https://github.com/Jakeschincariol/instagram-agent-skill)
+and takes fixes from pull requests on it by ganeshphutane-g, barberstats,
+iliyami, cbordoni1 and dougtudino. The rules for handling other people's text
+are adapted from [instagram-skills](https://github.com/sergebulaev/instagram-skills)
+by Sergey Bulaev, MIT.
 
 Sibling repo, same idea for a different platform:
 [linkedin-agent-skill](https://github.com/Jakeschincariol/linkedin-agent-skill).

@@ -784,34 +784,9 @@
       "family": "closers"
     },
     {
-      "find": "save this for later",
-      "replace": "",
-      "family": "closers"
-    },
-    {
       "find": "who's with me",
       "replace": "",
       "family": "closers"
-    },
-    {
-      "find": "stop scrolling",
-      "replace": "",
-      "family": "openers"
-    },
-    {
-      "find": "don't scroll past this",
-      "replace": "",
-      "family": "openers"
-    },
-    {
-      "find": "in this video i'm going to show you",
-      "replace": "",
-      "family": "openers"
-    },
-    {
-      "find": "in today's video",
-      "replace": "",
-      "family": "openers"
     },
     {
       "find": "watch till the end",
@@ -825,12 +800,12 @@
     },
     {
       "find": "nobody is talking about this",
-      "replace": "few people do this",
+      "replace": "few people talk about this",
       "family": "openers"
     },
     {
       "find": "no one is talking about this",
-      "replace": "few people do this",
+      "replace": "few people talk about this",
       "family": "openers"
     },
     {
@@ -969,9 +944,9 @@
     },
     {
       "id": "hashtag-wall",
-      "regex": "(?:#\\w+[ \\t]*){5,}",
-      "name": "Hashtag wall (5+)",
-      "fix": "Three hashtags. LinkedIn stopped rewarding the wall."
+      "regex": "(?:#\\w+[ \\t]*){6,}",
+      "name": "Hashtag wall (6+)",
+      "fix": "Five at most, each one a topic label. Instagram caps a post at five, so a sixth tag is dead weight."
     },
     {
       "id": "as-an-ai",

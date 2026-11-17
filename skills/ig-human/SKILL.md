@@ -15,17 +15,24 @@ Two tools live in this folder and they both actually run. Use them. Do not
 eyeball this.
 
 ```bash
-python3 humanize.py draft.txt --report        # clean it, show what changed
-python3 detect.py draft.txt                    # score it, five checks
-python3 detect.py before.txt after.txt         # prove the delta
+python3 "<skill dir>/humanize.py" draft.txt --report        # clean it, show what changed
+python3 "<skill dir>/detect.py" draft.txt                    # score it, five checks
+python3 "<skill dir>/detect.py" before.txt after.txt         # prove the delta
 ```
 
-Both read `slop.json`: 154 stock words and phrases with plain-English
+`<skill dir>` is this skill's own folder. Claude is shown its path when the skill
+loads ("Base directory for this skill"); in the plugin it is
+`${CLAUDE_PLUGIN_ROOT}/skills/ig-human`. Use the full path: the shell starts in the
+user's project, not here.
+
+Both read `slop.json`: 149 stock words and phrases with plain-English
 replacements, 18 invisible character classes, 11 typographic substitutions and
 16 structural tells. The last block of each list is Instagram-specific, the
 vocabulary that only shows up in captions and voiceovers. It is meant to be
-edited. If the user has a word they always use that the lexicon strips, take it
-out of the file.
+edited. If the user has a word they always use that the lexicon strips, copy
+`slop.json` to `~/.claude/instagram/slop.json` and take the word out there.
+Both scripts use that copy whenever it exists, and a plugin update does not
+touch it; an edit to the bundled file is lost on the next update.
 
 ## Why this matters more on Instagram than it looks
 
@@ -44,6 +51,13 @@ non-breaking and narrow spaces. A keyboard does not produce these. They survive
 copy-paste, they are invisible in every editor, and they are the most
 mechanical thing in generated text. `humanize.py` deletes every one, including
 any remaining Unicode format character it does not have a name for.
+
+It leaves the ones real text depends on: the joiner inside an emoji sequence
+(family, rainbow flag, a profession with a skin tone), the tags of the England,
+Scotland and Wales flags, the zero-width joiner and non-joiner between letters
+of Persian, Arabic and Indic words, and direction marks in right-to-left text.
+Stripping those does not remove a tell, it breaks the emoji or misspells the
+word.
 
 **2. Typography.** Em dash to comma, en dash to hyphen, curly quotes to
 straight, ellipsis to three dots, bullet character to hyphen. The em dash pass
@@ -88,7 +102,11 @@ PASS, and it is the part a script cannot do.
 
 The verdict weights the mean at 60% and the **weakest single check** at 40%,
 because one signal is enough. PASS needs an overall of 70+ with no check
-below 55.
+below 55. Text with fewer than four sentences or fewer than 25 words gets a
+neutral 50 ("too short to judge") on at least one check, which is under the 55
+floor, so a short caption, comment or DM cannot PASS. Say that rather than
+padding it. A Reel script written one short beat per line usually reads low
+on BURSTINESS; `/ig-reel` explains why.
 
 ## Say this honestly
 
@@ -102,9 +120,9 @@ do not tell a user their text is undetectable.
 
 ## Order of operations
 
-1. `humanize.py draft.txt -o clean.txt --report`
+1. `python3 "<skill dir>/humanize.py" draft.txt -o clean.txt --report`
 2. Read the structural flags. Rewrite those lines yourself.
-3. `detect.py draft.txt clean.txt` to show the before and after.
+3. `python3 "<skill dir>/detect.py" draft.txt clean.txt` to show the before and after.
 4. If the verdict is not PASS, fix the weakest check named in the output and go
    again. Two rounds is normal. Five means the draft was written by formula,
    and the fix is a different draft, not more passes.

@@ -73,7 +73,8 @@ that lets people say "that's me", and then a reply to each person who answered.
 The conversation starts because they spoke first.
 
 Automated keyword DM replies are a real, supported feature for professional
-accounts, through Instagram's own tools and approved partners. Bulk DMing
+accounts, through Instagram's Private Replies API, which comment-to-DM tools
+are built on. Bulk DMing
 people who did not interact is not, and it is what gets accounts restricted.
 The rule is simple: **they act first, then you reply.**
 
