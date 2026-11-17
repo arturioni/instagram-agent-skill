@@ -95,7 +95,7 @@ PASS, and it is the part a script cannot do.
 | check | what it measures | machine looks like |
 | --- | --- | --- |
 | BURSTINESS | sentence-length variation | every sentence the same length |
-| SPECIFICITY | numbers, names, concrete markers per 100 words | abstract nouns, no figures |
+| SPECIFICITY | numbers (as digits or words), names, money, per 100 words | abstract nouns, no figures |
 | SLOP DENSITY | lexicon hits per 100 words | stock vocabulary |
 | FINGERPRINT | invisible chars, em dashes, curly quotes per 1k chars | typographically perfect |
 | VOICE | contractions, person, structural tells | no contractions, staged reveals |

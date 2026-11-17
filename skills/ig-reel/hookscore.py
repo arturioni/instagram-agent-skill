@@ -120,6 +120,15 @@ def words(text):
     return WORD_RE.findall(re.sub(r"(?<=\d),(?=\d)", "", text))
 
 
+def spoken_number(word):
+    """A number or money word, on its own or as part of a hyphenated word.
+
+    words() keeps hyphens, so "twenty-five" and "five-dollar" stay one word:
+    one spoken word group for LENGTH, and one number here, the way "25" is.
+    """
+    return any(part in SPOKEN_NUMBERS or part in MONEY_WORDS for part in word.split("-"))
+
+
 def check_length(text):
     """A hook has to land before the thumb moves. Roughly two seconds."""
     w = words(text)
@@ -142,7 +151,7 @@ def check_specificity(text):
     nums = [n.strip() for n in NUMBER_RE.findall(text) if n.strip()]
     propers = set(PROPER_RE.findall(text))
     low = [w.lower().strip("'’") for w in words(text)]
-    spoken = [w for w in low if w in SPOKEN_NUMBERS or w in MONEY_WORDS]
+    spoken = [w for w in low if spoken_number(w)]
     hits = len(nums) + len(propers) + len(spoken)
     score = 15.0 if hits == 0 else clamp(45 + hits * 30)
     found = ", ".join(nums[:2] + sorted(propers)[:2] + spoken[:2])
@@ -185,7 +194,7 @@ def check_frontload(text):
     # so matching it against one word at a time never found any.
     propers = set(PROPER_RE.findall(text))
     for i, token in enumerate(low):
-        if (token in STAKES or token in SPOKEN_NUMBERS or token in MONEY_WORDS
+        if (token in STAKES or spoken_number(token)
                 or NUMBER_RE.match(w[i]) or (i and w[i] in propers)):
             payload = i
             break
